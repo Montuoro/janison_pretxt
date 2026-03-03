@@ -27,7 +27,12 @@ layout = dbc.Container([
 
     dbc.Button("Generate Persons & Responses", id="btn-generate", color="primary", size="lg"),
 
-    html.Div(id="step8-results", className="mt-3"),
+    # Progress / loading area
+    dcc.Loading(
+        html.Div(id="step8-results", className="mt-3"),
+        type="default",
+        color="#0d6efd",
+    ),
 ], fluid=True)
 
 
@@ -44,6 +49,10 @@ layout = dbc.Container([
     State("store-discrimination", "data"),
     State("store-completed-steps", "data"),
     prevent_initial_call=True,
+    running=[
+        (Output("btn-generate", "disabled"), True, False),
+        (Output("btn-generate", "children"), "Generating...", "Generate Persons & Responses"),
+    ],
 )
 def generate_persons(n_clicks, n_persons, seed, btl_json, dist_json, discrim_json, completed):
     if not btl_json or not dist_json:
@@ -86,6 +95,18 @@ def generate_persons(n_clicks, n_persons, seed, btl_json, dist_json, discrim_jso
     p_values = resp_matrix.mean(axis=0)
 
     results = html.Div([
+        # Completed progress bar
+        dbc.Progress(value=100, color="success", className="mb-3",
+                     label="Generation Complete"),
+
+        # Success confirmation
+        dbc.Alert([
+            html.I(className="bi bi-check-circle-fill me-2"),
+            html.Strong("Done! "),
+            f"{n_persons} persons generated across {len(difficulties)} items. "
+            f"Mean score: {mean_score:.1f}, Mean ability: {abilities.mean():.2f}.",
+        ], color="success", className="d-flex align-items-center"),
+
         dbc.Row([
             dbc.Col(dbc.Card(dbc.CardBody([
                 html.Div(f"{n_persons}", className="stat-value"),
@@ -108,8 +129,8 @@ def generate_persons(n_clicks, n_persons, seed, btl_json, dist_json, discrim_jso
         html.H5("Item P-values (proportion correct)"),
         dbc.Table.from_dataframe(
             pd.DataFrame({
-                "Item": items_df["item_id"],
-                "P-value": p_values.round(3),
+                "Item": items_df["item_id"].values,
+                "P-value": p_values.values.round(3),
                 "Difficulty": difficulties.round(2),
             }).sort_values("P-value"),
             striped=True, bordered=True, hover=True, size="sm",

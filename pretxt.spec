@@ -50,6 +50,7 @@ a = Analysis(
         "scipy",
         "scipy.interpolate",
         "scipy.integrate",
+        "scipy.ndimage",
         "choix",
         "anthropic",
         "openpyxl",

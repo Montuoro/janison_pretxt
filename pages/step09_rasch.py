@@ -18,9 +18,11 @@ layout = dbc.Container([
 
     dbc.Button("Run Rasch Analysis", id="btn-run-rasch", color="primary", size="lg"),
 
+    # Progress / loading area
     dcc.Loading(
         html.Div(id="rasch-results", className="mt-3"),
-        type="circle",
+        type="default",
+        color="#0d6efd",
     ),
 ], fluid=True)
 
@@ -35,6 +37,7 @@ layout = dbc.Container([
     prevent_initial_call=True,
     running=[
         (Output("btn-run-rasch", "disabled"), True, False),
+        (Output("btn-run-rasch", "children"), "Running R/TAM...", "Run Rasch Analysis"),
     ],
 )
 def run_rasch(n_clicks, resp_json, completed):
@@ -62,6 +65,19 @@ def run_rasch(n_clicks, resp_json, completed):
     n_persons = tam_results.get("n_persons", 0)
 
     results = html.Div([
+        # Completed progress bar
+        dbc.Progress(value=100, color="success", className="mb-3",
+                     label="Analysis Complete"),
+
+        # Success confirmation
+        dbc.Alert([
+            html.I(className="bi bi-check-circle-fill me-2"),
+            html.Strong("Rasch analysis complete! "),
+            f"{n_items} items calibrated across {n_persons} persons. "
+            f"Cronbach's alpha: {rel.get('cronbach_alpha', 0):.3f}. "
+            "Proceed to Reports.",
+        ], color="success", className="d-flex align-items-center"),
+
         dbc.Row([
             dbc.Col(dbc.Card(dbc.CardBody([
                 html.Div(f"{n_items}", className="stat-value"),
@@ -80,8 +96,6 @@ def run_rasch(n_clicks, resp_json, completed):
                 html.Div("WLE Reliability", className="stat-label"),
             ]), className="stat-card"), md=3),
         ], className="mb-3"),
-
-        dbc.Alert("Rasch analysis complete! Proceed to Reports.", color="success"),
     ])
 
     return json.dumps(tam_results), completed, results

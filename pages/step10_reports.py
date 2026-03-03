@@ -1,4 +1,4 @@
-"""Step 10: Reports — Wright map, fit, Guttman, gaps."""
+"""Step 10: Reports — Wright map, fit, Person-Item distribution, Guttman."""
 
 from dash import html, dcc, callback, Input, Output, State, no_update
 import dash_bootstrap_components as dbc
@@ -9,14 +9,12 @@ import json
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-from core.report_builder import (
-    build_item_params_table, identify_misfit_items, find_gaps, guttman_scalogram,
-)
+from core.report_builder import build_item_params_table, identify_misfit_items
 from components.page_size_selector import page_size_selector, register_page_size_callback
 
 # Pre-register page-size callbacks for dynamically created tables
 register_page_size_callback("report-params-page-size", "report-params-table")
-register_page_size_callback("report-guttman-page-size", "report-guttman-table")
+# Guttman table uses virtualization (no pagination), so no page-size callback needed
 
 layout = dbc.Container([
     html.H3("Step 10: Reports", className="mb-3"),
@@ -25,8 +23,8 @@ layout = dbc.Container([
         dbc.Tab(label="Item Parameters", tab_id="tab-params"),
         dbc.Tab(label="Wright Map", tab_id="tab-wright"),
         dbc.Tab(label="Test Statistics", tab_id="tab-stats"),
-        dbc.Tab(label="Gap Analysis", tab_id="tab-gaps"),
-        dbc.Tab(label="Guttman Patterns", tab_id="tab-guttman"),
+        dbc.Tab(label="Person-Item Distribution", tab_id="tab-person-item"),
+        dbc.Tab(label="Guttman Pattern", tab_id="tab-guttman"),
         dbc.Tab(label="Export", tab_id="tab-export"),
     ], id="report-tabs", active_tab="tab-params"),
 
@@ -38,7 +36,7 @@ layout = dbc.Container([
             page_size_selector("report-params-page-size", default=15),
         ], style={"display": "none"}),
         html.Div(id="report-guttman-page-size-container", children=[
-            page_size_selector("report-guttman-page-size", default=15),
+            page_size_selector("report-guttman-page-size", default=50),
         ], style={"display": "none"}),
     ], className="table-with-pager"),
 ], fluid=True)
@@ -66,7 +64,7 @@ def render_report_tab(tab, btl_json, tam_json, abilities_json, resp_json, discri
     hide = {"display": "none"}
     show = {"display": "block"}
     params_vis = show if tab == "tab-params" else hide
-    guttman_vis = show if tab == "tab-guttman" else hide
+    guttman_vis = hide  # Guttman uses virtualization, no page-size selector
 
     if not btl_json:
         return dbc.Alert("Complete earlier steps first.", color="warning"), completed, hide, hide
@@ -87,8 +85,8 @@ def render_report_tab(tab, btl_json, tam_json, abilities_json, resp_json, discri
         return _render_wright(items_df, tam_results, abilities), completed, params_vis, guttman_vis
     elif tab == "tab-stats":
         return _render_stats(tam_results), completed, params_vis, guttman_vis
-    elif tab == "tab-gaps":
-        return _render_gaps(items_df, abilities), completed, params_vis, guttman_vis
+    elif tab == "tab-person-item":
+        return _render_person_item_dist(items_df, tam_results, abilities), completed, params_vis, guttman_vis
     elif tab == "tab-guttman":
         return _render_guttman(resp_df, abilities, items_df), completed, params_vis, guttman_vis
     elif tab == "tab-export":
@@ -235,87 +233,233 @@ def _render_stats(tam_results):
     ])
 
 
-def _render_gaps(items_df, abilities):
-    item_diffs = items_df["difficulty"].values
+# ── Person-Item Threshold Distribution (replaces Gap Analysis) ───────────────
 
-    fig = go.Figure()
+def _render_person_item_dist(items_df, tam_results, abilities):
+    """RUMM2030-style person-item threshold distribution.
 
-    # Item distribution
-    fig.add_trace(go.Histogram(
-        x=item_diffs,
-        nbinsx=15,
-        marker_color="#0d6efd",
-        opacity=0.6,
-        name="Items",
-    ))
+    Persons histogram on top (bars up), items histogram on bottom (bars down),
+    sharing the same logit x-axis.
+    """
+    if abilities is None or len(abilities) == 0:
+        return dbc.Alert("Generate person data first (Step 8).", color="warning")
 
-    if abilities is not None:
-        fig.add_trace(go.Histogram(
-            x=abilities,
-            nbinsx=25,
-            marker_color="#198754",
-            opacity=0.4,
-            name="Persons",
-            yaxis="y2",
-        ))
-        fig.update_layout(
-            yaxis2=dict(overlaying="y", side="right", title="Person Count", showgrid=False),
-        )
+    # Use Rasch difficulties if available, else BTL
+    if tam_results and "item_params" in tam_results:
+        item_diffs = np.array([p["xsi"] for p in tam_results["item_params"]])
+    else:
+        item_diffs = items_df["difficulty"].values
 
-    fig.update_layout(
-        title="Item & Person Distribution Overlap",
-        xaxis_title="Logit Scale",
-        yaxis_title="Item Count",
-        template="plotly_white",
-        barmode="overlay",
-        height=400,
+    # Determine shared bin edges
+    all_vals = np.concatenate([abilities, item_diffs])
+    lo = np.floor(all_vals.min()) - 0.5
+    hi = np.ceil(all_vals.max()) + 0.5
+    bin_width = 0.5
+    bin_edges = np.arange(lo, hi + bin_width, bin_width)
+    bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2
+
+    # Compute histograms
+    person_counts, _ = np.histogram(abilities, bins=bin_edges)
+    item_counts, _ = np.histogram(item_diffs, bins=bin_edges)
+
+    n_persons = len(abilities)
+    n_items = len(item_diffs)
+    person_pct = person_counts / n_persons * 100 if n_persons > 0 else person_counts
+    item_pct = item_counts / n_items * 100 if n_items > 0 else item_counts
+
+    # Build figure with two subplots sharing x-axis
+    fig = make_subplots(
+        rows=2, cols=1,
+        shared_xaxes=True,
+        vertical_spacing=0.03,
+        row_heights=[0.65, 0.35],
     )
 
-    gaps_list = []
-    if abilities is not None:
-        gaps_list = find_gaps(item_diffs, abilities)
+    # ── Top: Persons (bars pointing up) ──────────────────────────────────────
+    fig.add_trace(
+        go.Bar(
+            x=bin_centres, y=person_counts,
+            marker_color="#198754", opacity=0.8,
+            name="Persons",
+            hovertemplate="Location: %{x:.1f}<br>Count: %{y}<br>Pct: %{customdata:.1f}%",
+            customdata=person_pct,
+        ),
+        row=1, col=1,
+    )
 
-    gap_content = []
-    if gaps_list:
-        gap_content.append(html.H6(f"{len(gaps_list)} gap(s) identified:"))
-        for g in gaps_list:
-            gap_content.append(dbc.Alert(g["description"], color="warning", className="py-1"))
-    else:
-        gap_content.append(dbc.Alert("No significant gaps detected.", color="success"))
+    # Person stats annotation
+    fig.add_annotation(
+        x=0.02, y=0.98, xref="paper", yref="paper",
+        text=(f"<b>PERSONS</b>  N={n_persons}  "
+              f"Mean={abilities.mean():.3f}  SD={abilities.std():.3f}"),
+        showarrow=False, font=dict(size=11),
+        xanchor="left", yanchor="top",
+    )
+
+    # Person y-axes
+    person_max = int(person_counts.max()) + 2
+    person_pct_max = person_max / n_persons * 100 if n_persons > 0 else 1
+    fig.update_yaxes(
+        title_text="Frequency", range=[0, person_max],
+        row=1, col=1,
+    )
+
+    # ── Bottom: Items (bars pointing down = inverted y-axis) ─────────────────
+    fig.add_trace(
+        go.Bar(
+            x=bin_centres, y=item_counts,
+            marker_color="#0d6efd", opacity=0.8,
+            name="Items",
+            hovertemplate="Location: %{x:.1f}<br>Count: %{y}<br>Pct: %{customdata:.1f}%",
+            customdata=item_pct,
+        ),
+        row=2, col=1,
+    )
+
+    item_max = int(item_counts.max()) + 2
+    fig.update_yaxes(
+        title_text="Frequency", autorange="reversed",
+        range=[0, item_max],
+        row=2, col=1,
+    )
+
+    # Items label
+    fig.add_annotation(
+        x=0.02, y=0.30, xref="paper", yref="paper",
+        text=f"<b>ITEMS</b>  N={n_items}",
+        showarrow=False, font=dict(size=11),
+        xanchor="left", yanchor="top",
+    )
+
+    fig.update_xaxes(title_text="Location (logits)", row=2, col=1)
+
+    fig.update_layout(
+        title="Person-Item Threshold Distribution",
+        template="plotly_white",
+        height=550,
+        showlegend=True,
+        bargap=0.05,
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+    )
 
     return html.Div([
-        html.H5("Gap Analysis"),
+        html.H5("Person-Item Threshold Distribution"),
+        html.P("Persons on top, items on bottom — both on the same logit scale. "
+               "Gaps between the two distributions indicate areas with poor measurement precision.",
+               className="text-muted small"),
         dcc.Graph(figure=fig),
-        html.Div(gap_content, className="mt-3"),
     ])
 
 
+# ── Guttman Pattern (RUMM2030-style colored grid) ───────────────────────────
+
 def _render_guttman(resp_df, abilities, items_df):
+    """RUMM2030-style Guttman distribution: colored grid of all responses.
+
+    Rows = persons sorted by ability (lowest first).
+    Columns = items sorted by difficulty (easiest first).
+    1 (correct) = blue, 0 (incorrect) = amber/orange.
+    """
     if resp_df is None or abilities is None:
         return dbc.Alert("Generate response data first (Step 8).", color="warning")
 
     difficulties = items_df["difficulty"].values
-    scalogram = guttman_scalogram(resp_df, abilities, difficulties, n_show=20)
+    item_ids = items_df["item_id"].values
+
+    # Sort items by difficulty (easiest first)
+    item_order = np.argsort(difficulties)
+    sorted_item_ids = item_ids[item_order]
+    sorted_diffs = difficulties[item_order]
+    sorted_responses = resp_df.iloc[:, item_order].values
+
+    # Sort persons by ability (lowest first)
+    person_order = np.argsort(abilities)
+    sorted_abilities = abilities[person_order]
+    sorted_responses = sorted_responses[person_order]
+
+    # Build column headers: difficulty rounded
+    item_col_ids = [f"item_{i}" for i in range(len(sorted_diffs))]
+    item_col_names = [f"{d:.1f}" for d in sorted_diffs]
+
+    # Build table data
+    records = []
+    for i in range(len(sorted_abilities)):
+        row = {
+            "serial": int(person_order[i]),
+            "location": round(float(sorted_abilities[i]), 3),
+        }
+        for j, col_id in enumerate(item_col_ids):
+            row[col_id] = int(sorted_responses[i, j])
+        records.append(row)
+
+    # Columns definition
+    columns = [
+        {"name": "Serial", "id": "serial"},
+        {"name": "Location", "id": "location"},
+    ] + [
+        {"name": name, "id": col_id}
+        for name, col_id in zip(item_col_names, item_col_ids)
+    ]
+
+    # Conditional styling: 1 = blue, 0 = amber for each item column
+    style_conditions = []
+    for col_id in item_col_ids:
+        style_conditions.append({
+            "if": {"filter_query": f"{{{col_id}}} = 1", "column_id": col_id},
+            "backgroundColor": "#0d6efd", "color": "white",
+        })
+        style_conditions.append({
+            "if": {"filter_query": f"{{{col_id}}} = 0", "column_id": col_id},
+            "backgroundColor": "#e67e00", "color": "white",
+        })
 
     return html.Div([
-        html.H5("Most Aberrant Guttman Patterns"),
-        html.P("Response patterns sorted by aberrance (number of Guttman inversions). "
-               "Items sorted easiest→hardest.", className="text-muted"),
-        dash_table.DataTable(
-            id="report-guttman-table",
-            columns=[
-                {"name": "Person", "id": "person"},
-                {"name": "Ability", "id": "ability"},
-                {"name": "Score", "id": "score"},
-                {"name": "Aberrance", "id": "aberrance"},
-                {"name": "Pattern (easy→hard)", "id": "pattern"},
-            ],
-            data=scalogram.to_dict("records"),
-            style_table={"overflowX": "auto"},
-            style_cell={"textAlign": "center", "padding": "6px", "fontSize": "0.8rem",
-                         "fontFamily": "monospace"},
-            style_header={"backgroundColor": "#e9ecef", "fontWeight": "600"},
-            page_size=15,
+        html.H5("Guttman Pattern"),
+        html.P([
+            f"{len(records)} persons \u00d7 {len(item_col_ids)} items. "
+            "Persons sorted by ability (low \u2192 high). "
+            "Items sorted by difficulty (easy \u2192 hard). ",
+            html.Span("Blue = correct (1)", style={"color": "#0d6efd", "fontWeight": "700"}),
+            ", ",
+            html.Span("Amber = incorrect (0)", style={"color": "#e67e00", "fontWeight": "700"}),
+            ".",
+        ], className="text-muted small mb-2"),
+        html.Div(
+            dash_table.DataTable(
+                id="report-guttman-table",
+                columns=columns,
+                data=records,
+                page_action="none",
+                virtualization=True,
+                style_table={
+                    "overflowX": "auto",
+                    "overflowY": "auto",
+                    "height": "calc(100vh - 260px)",
+                    "minHeight": "400px",
+                },
+                style_cell={
+                    "textAlign": "center", "padding": "2px",
+                    "fontSize": "0.7rem", "fontFamily": "monospace",
+                    "minWidth": "28px", "maxWidth": "36px",
+                    "lineHeight": "20px",
+                },
+                style_cell_conditional=[
+                    {"if": {"column_id": "serial"},
+                     "minWidth": "55px", "maxWidth": "70px", "fontWeight": "600",
+                     "backgroundColor": "#f8f9fa"},
+                    {"if": {"column_id": "location"},
+                     "minWidth": "65px", "maxWidth": "80px", "fontWeight": "600",
+                     "backgroundColor": "#f8f9fa"},
+                ],
+                style_header={
+                    "backgroundColor": "#e9ecef", "fontWeight": "600",
+                    "fontSize": "0.7rem", "padding": "2px",
+                },
+                style_data_conditional=style_conditions,
+                fixed_columns={"headers": True, "data": 2},
+                fixed_rows={"headers": True},
+            ),
+            className="guttman-grid-container",
         ),
     ])
 
