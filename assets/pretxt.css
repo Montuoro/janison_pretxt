@@ -1,0 +1,174 @@
+/* PreTxT custom styles */
+
+body {
+    background-color: #f8f9fa;
+}
+
+/* Step indicator */
+.step-indicator {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 0;
+    margin-bottom: 1.5rem;
+}
+
+.step-circle {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.85rem;
+    border: 2px solid #dee2e6;
+    background-color: #fff;
+    color: #6c757d;
+    cursor: default;
+    transition: all 0.2s;
+}
+
+.step-circle.active {
+    border-color: #0d6efd;
+    background-color: #0d6efd;
+    color: #fff;
+}
+
+.step-circle.completed {
+    border-color: #198754;
+    background-color: #198754;
+    color: #fff;
+    cursor: pointer;
+}
+
+.step-circle.clickable {
+    cursor: pointer;
+}
+
+.step-circle.clickable:hover {
+    transform: scale(1.1);
+}
+
+.step-connector {
+    flex: 1;
+    height: 2px;
+    background-color: #dee2e6;
+    margin: 0 4px;
+}
+
+.step-connector.completed {
+    background-color: #198754;
+}
+
+/* Page content */
+.page-content {
+    min-height: 60vh;
+}
+
+/* Navigation buttons */
+.nav-buttons {
+    display: flex;
+    justify-content: space-between;
+    padding: 1.5rem 0;
+    border-top: 1px solid #dee2e6;
+    margin-top: 1.5rem;
+}
+
+/* Item table */
+.item-table {
+    font-size: 0.85rem;
+}
+
+/* Hover ruler */
+.ruler-container {
+    position: relative;
+}
+
+/* Cards */
+.stat-card {
+    text-align: center;
+    padding: 1rem;
+}
+
+.stat-card .stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #0d6efd;
+}
+
+.stat-card .stat-label {
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+
+/* Fit flags */
+.fit-ok { color: #198754; }
+.fit-warn { color: #ffc107; }
+.fit-bad { color: #dc3545; }
+
+/* API key input */
+.api-key-input input {
+    font-family: monospace;
+}
+
+/* Progress section */
+.comparison-progress {
+    max-height: 300px;
+    overflow-y: auto;
+    font-size: 0.8rem;
+}
+
+/* Drawing canvas overlay */
+.drawing-overlay {
+    cursor: crosshair;
+}
+
+/* ── Table + page-size selector layout ─────────────────────────────── */
+
+/* Wrapper: the selector floats left inside the pagination row */
+.table-with-pager {
+    position: relative;
+}
+
+.table-page-size-selector {
+    display: flex;
+    align-items: center;
+    margin-top: 4px;
+}
+
+.table-page-size-selector .Dropdown {
+    font-size: 0.8rem;
+}
+
+/* ── Fix ALL dropdown menus inside DataTables ──────────────────────── */
+
+/* The DataTable's overflow clips in-cell dropdown menus.
+   Allow the cell dropdown to escape the table boundary. */
+.dash-spreadsheet-container .dash-spreadsheet-inner {
+    overflow: visible !important;
+}
+
+/* Ensure the React-Select menu (used by DataTable dropdowns)
+   renders above everything else and isn't clipped. */
+.dash-spreadsheet .Select-menu-outer {
+    position: absolute !important;
+    z-index: 999 !important;
+}
+
+/* ── Fix page-size selector dropdown opening upward ────────────────── */
+
+/* When the selector is near the bottom of a container, force the
+   dcc.Dropdown menu to open upward so it doesn't get clipped. */
+.table-page-size-selector .Select.is-open .Select-menu-outer {
+    top: auto !important;
+    bottom: 100% !important;
+    border-bottom: none;
+    border-top: 1px solid #ccc;
+    border-radius: 4px 4px 0 0;
+}
+
+/* Report tabs */
+.report-tab-content {
+    padding: 1.5rem 0;
+}
