@@ -38,20 +38,20 @@ layout = dbc.Container([
                 },
             },
             style_table={"overflowX": "auto", "overflowY": "visible",
-                          "tableLayout": "auto"},
+                          "width": "auto"},
             style_cell={"textAlign": "center", "padding": "6px 8px", "fontSize": "0.82rem",
                          "whiteSpace": "nowrap", "overflow": "hidden", "textOverflow": "ellipsis"},
             style_header={"backgroundColor": "#e9ecef", "fontWeight": "600",
                            "textAlign": "center"},
             style_cell_conditional=[
                 {"if": {"column_id": "item_id"}, "textAlign": "left",
-                 "width": "80px", "minWidth": "80px", "maxWidth": "80px"},
+                 "width": "60px", "minWidth": "60px", "maxWidth": "60px"},
                 {"if": {"column_id": "stem"}, "textAlign": "left",
-                 "whiteSpace": "nowrap", "overflow": "hidden", "textOverflow": "ellipsis"},
+                 "whiteSpace": "normal"},
                 {"if": {"column_id": "difficulty"}, "width": "80px",
                  "minWidth": "80px", "maxWidth": "80px"},
                 {"if": {"column_id": "discrimination"}, "fontWeight": "bold",
-                 "width": "140px", "minWidth": "140px", "maxWidth": "140px"},
+                 "width": "130px", "minWidth": "130px", "maxWidth": "130px"},
             ],
             css=[{"selector": ".Select-menu-outer", "rule": "display: block !important;"}],
             style_data_conditional=[
@@ -101,7 +101,7 @@ def populate_discrim_table(btl_json):
     table_data = df[["item_id", "stem", "difficulty"]].copy()
     table_data["discrimination"] = "Normal"
     table_data["difficulty"] = table_data["difficulty"].round(2)
-    table_data["stem"] = table_data["stem"].str[:80]
+    # Show full stem text — no truncation
 
     return table_data.to_dict("records"), ""
 
