@@ -336,11 +336,6 @@ def start_or_skip_comparisons(run_clicks, skip_clicks, stop_clicks,
             return (no_change, no_change, no_change, no_change, no_change,
                     no_change, no_change, no_change, no_change, no_change,
                     dbc.Alert("Upload items first.", color="danger"))
-        if not api_key:
-            return (no_change, no_change, no_change, no_change, no_change,
-                    no_change, no_change, no_change, no_change, no_change,
-                    dbc.Alert("Please enter and test your API key first.", color="danger"))
-
         df = pd.read_json(items_json, orient="split")
         items = df.to_dict("records")
         strategy = strategy or "chain"

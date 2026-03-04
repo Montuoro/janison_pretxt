@@ -47,7 +47,6 @@ layout = dbc.Container([
             ],
             css=[{"selector": ".Select-menu-outer", "rule": "display: block !important;"}],
             style_data_conditional=[
-                {"if": {"row_index": "odd"}, "backgroundColor": "#f8f9fa"},
                 # Harder cell — bold blue
                 {"if": {"filter_query": "{harder} = 'A'", "column_id": "harder"},
                  "color": "#0d6efd", "fontWeight": "700"},

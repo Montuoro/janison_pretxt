@@ -230,7 +230,7 @@ def render_chart(fitted_json, pctile_json, clear_clicks, btl_json):
 
     fig.update_layout(
         xaxis=dict(title="Ability / Difficulty (logits)", range=[lo, hi]),
-        yaxis=dict(title="Density", range=[0, y_peak * 1.25]),
+        yaxis=dict(title="Relative Density", range=[0, 1]),
         template="plotly_white",
         margin=dict(t=30),
         showlegend=True,

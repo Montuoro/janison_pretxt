@@ -1,6 +1,6 @@
 """Step 8: Generate N simulated persons."""
 
-from dash import html, dcc, callback, Input, Output, State, no_update
+from dash import html, dcc, callback, Input, Output, State, no_update, dash_table
 import dash_bootstrap_components as dbc
 import pandas as pd
 import numpy as np
@@ -127,13 +127,37 @@ def generate_persons(n_clicks, n_persons, seed, btl_json, dist_json, discrim_jso
         ], className="mb-3"),
 
         html.H5("Item P-values (proportion correct)"),
-        dbc.Table.from_dataframe(
-            pd.DataFrame({
-                "Item": items_df["item_id"].values,
-                "P-value": p_values.values.round(3),
-                "Difficulty": difficulties.round(2),
-            }).sort_values("P-value"),
-            striped=True, bordered=True, hover=True, size="sm",
+        html.Div(
+            dash_table.DataTable(
+                columns=[
+                    {"name": "Item", "id": "Item"},
+                    {"name": "P-value", "id": "P-value"},
+                    {"name": "Difficulty", "id": "Difficulty"},
+                ],
+                data=pd.DataFrame({
+                    "Item": items_df["item_id"].values,
+                    "P-value": p_values.values.round(3),
+                    "Difficulty": difficulties.round(2),
+                }).sort_values("P-value").to_dict("records"),
+                style_table={"overflowX": "auto", "width": "320px"},
+                style_cell={"padding": "4px 8px", "fontSize": "0.82rem",
+                             "textAlign": "center", "whiteSpace": "nowrap"},
+                style_cell_conditional=[
+                    {"if": {"column_id": "Item"}, "textAlign": "left",
+                     "width": "90px", "minWidth": "90px", "maxWidth": "90px"},
+                    {"if": {"column_id": "P-value"}, "width": "90px",
+                     "minWidth": "90px", "maxWidth": "90px"},
+                    {"if": {"column_id": "Difficulty"}, "width": "90px",
+                     "minWidth": "90px", "maxWidth": "90px"},
+                ],
+                style_header={"backgroundColor": "#e9ecef", "fontWeight": "600",
+                               "textAlign": "center"},
+                style_data_conditional=[
+                    {"if": {"row_index": "odd"}, "backgroundColor": "#f8f9fa"},
+                ],
+                page_action="none",
+                sort_action="native",
+            ),
         ),
     ])
 

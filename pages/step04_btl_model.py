@@ -19,10 +19,7 @@ layout = dbc.Container([
     dbc.Button("Fit BTL Model", id="btn-fit-btl", color="primary", size="lg"),
 
     html.Div(id="btl-stats", className="mt-3"),
-    html.Div([
-        html.Div(id="btl-results", className="mt-1"),
-        page_size_selector("btl-item-table-page-size", default=15),
-    ], className="table-with-pager"),
+    html.Div(id="btl-results", className="mt-1"),
 ], fluid=True)
 
 
@@ -60,7 +57,7 @@ def fit_btl_callback(n_clicks, items_json, comparisons_json, completed):
         completed = sorted(set(completed + [4]))
 
     # Stats cards
-    stats = dbc.Row([
+    stats_cards = dbc.Row([
         dbc.Col(dbc.Card(dbc.CardBody([
             html.Div(f"{result['comparisons_used']}", className="stat-value"),
             html.Div("Comparisons Used", className="stat-label"),
@@ -79,11 +76,36 @@ def fit_btl_callback(n_clicks, items_json, comparisons_json, completed):
         ]), className="stat-card"), md=3),
     ], className="mb-3")
 
-    # Table
+    # Pairwise model summary table
+    s = result.get("summary", {})
+    summary_table = html.Div([
+        html.H5("Pairwise Model Summary"),
+        dbc.Table([
+            html.Thead(html.Tr([
+                html.Th("Statistic"), html.Th("Value"),
+            ])),
+            html.Tbody([
+                html.Tr([html.Td("Mean Location"), html.Td(f"{s.get('mean_location', 0):.4f}")]),
+                html.Tr([html.Td("Variance"), html.Td(f"{s.get('variance', 0):.4f}")]),
+                html.Tr([html.Td("Mean Square Error"), html.Td(f"{s.get('mse', 0):.4f}")]),
+                html.Tr([html.Td("Separation Index"), html.Td(f"{s.get('separation_index', 0):.4f}")]),
+                html.Tr([html.Td("Degrees of Freedom"), html.Td(f"{s.get('df', 0)}")]),
+            ]),
+        ], bordered=True, striped=True, hover=True, size="sm", className="w-auto",
+           style={"fontSize": "0.82rem"}),
+    ], className="mb-3")
+
+    stats = html.Div([stats_cards, summary_table])
+
+    # Table — include per-item pairwise fit stats
+    display_cols = ["rank", "item_id", "stem", "n_comparisons", "n_selected", "difficulty",
+                    "difficulty_se", "obs_proportion", "outfit", "chi_sq", "item_df"]
+    # Only include columns that exist
+    display_cols = [c for c in display_cols if c in result_df.columns]
     table = html.Div([
         html.H5("Item Difficulty Estimates (ranked hardest → easiest)"),
         make_item_table(
-            result_df[["rank", "item_id", "stem", "difficulty", "difficulty_se"]],
+            result_df[display_cols],
             table_id="btl-item-table",
         ),
     ])

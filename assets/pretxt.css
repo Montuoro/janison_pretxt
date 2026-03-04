@@ -172,3 +172,40 @@ body {
 .report-tab-content {
     padding: 1.5rem 0;
 }
+
+/* ── Guttman full-screen overlay ─────────────────────────────────────────── */
+
+.guttman-fullscreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 1000;
+    background: #fff;
+    padding: 8px 12px;
+    display: flex;
+    flex-direction: column;
+}
+
+.guttman-fullscreen .guttman-header {
+    flex-shrink: 0;
+}
+
+.guttman-fullscreen .guttman-table-wrap {
+    flex: 1;
+    min-height: 0;
+}
+
+/* Force the DataTable container chain to fill the wrapper */
+.guttman-fullscreen .guttman-table-wrap,
+.guttman-fullscreen .dash-spreadsheet-container,
+.guttman-fullscreen .dash-spreadsheet-inner {
+    height: 100% !important;
+    max-height: none !important;
+}
+
+.guttman-zoom-slider {
+    width: 200px;
+    display: inline-block;
+}

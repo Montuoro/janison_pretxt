@@ -40,10 +40,7 @@ layout = dbc.Container([
     ], className="mb-3"),
 
     html.Div(id="upload-feedback"),
-    html.Div([
-        html.Div(id="items-preview"),
-        page_size_selector("item-table-page-size", default=15),
-    ], className="table-with-pager"),
+    html.Div(id="items-preview"),
 ], fluid=True)
 
 

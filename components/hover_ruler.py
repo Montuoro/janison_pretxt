@@ -6,23 +6,25 @@ import pandas as pd
 
 
 def make_item_ruler(items_df: pd.DataFrame, difficulty_col: str = "difficulty",
-                    n_bins: int = 12, title: str = "Item Difficulty Ruler") -> go.Figure:
-    """Create a bar chart of item difficulties with hover info showing stems.
+                    bin_width: float = 0.5,
+                    title: str = "Item Difficulty Ruler") -> go.Figure:
+    """Create a bar chart of item difficulties with hover info showing items.
 
     Args:
         items_df: DataFrame with at least 'item_id', 'stem', and difficulty_col.
         difficulty_col: Column name for difficulty values.
-        n_bins: Number of bins.
+        bin_width: Width of each bin in logits.
         title: Chart title.
 
     Returns:
         Plotly Figure.
     """
     diffs = items_df[difficulty_col].values
-    lo, hi = np.min(diffs) - 0.5, np.max(diffs) + 0.5
-    bin_edges = np.linspace(lo, hi, n_bins + 1)
+    lo = np.floor(np.min(diffs) / bin_width) * bin_width - bin_width
+    hi = np.ceil(np.max(diffs) / bin_width) * bin_width + bin_width
+    bin_edges = np.arange(lo, hi + bin_width, bin_width)
     bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2
-    bin_width = bin_edges[1] - bin_edges[0]
+    n_bins = len(bin_centres)
 
     counts = []
     hover_texts = []
@@ -35,8 +37,8 @@ def make_item_ruler(items_df: pd.DataFrame, difficulty_col: str = "difficulty",
 
         lines = []
         for _, row in bin_items.iterrows():
-            stem_preview = str(row.get("stem", ""))[:80]
-            lines.append(f"{row['item_id']}: {stem_preview}")
+            d = row[difficulty_col]
+            lines.append(f"{row['item_id']} ({d:.2f})")
         hover_text = "<br>".join(lines) if lines else "No items"
         hover_texts.append(hover_text)
 
@@ -47,7 +49,7 @@ def make_item_ruler(items_df: pd.DataFrame, difficulty_col: str = "difficulty",
             width=bin_width * 0.9,
             marker_color="#0d6efd",
             customdata=hover_texts,
-            hovertemplate="<b>Difficulty: %{x:.2f}</b><br>Count: %{y}<br><br>%{customdata}<extra></extra>",
+            hovertemplate="<b>Range: %{x:.2f}</b><br>Count: %{y}<br><br>%{customdata}<extra></extra>",
         )
     )
     fig.update_layout(
@@ -55,9 +57,9 @@ def make_item_ruler(items_df: pd.DataFrame, difficulty_col: str = "difficulty",
         xaxis_title="Difficulty (logits)",
         yaxis_title="Number of Items",
         template="plotly_white",
-        hoverlabel=dict(bgcolor="white", font_size=12, align="left"),
+        hoverlabel=dict(bgcolor="white", font_size=11, align="left"),
         margin=dict(t=50, b=50),
-        height=400,
+        height=420,
     )
     return fig
 

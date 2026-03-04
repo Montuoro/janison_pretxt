@@ -37,11 +37,21 @@ layout = dbc.Container([
                     "options": [{"label": lv, "value": lv} for lv in _VALID_LEVELS],
                 },
             },
-            style_table={"overflowX": "auto", "overflowY": "visible"},
-            style_cell={"textAlign": "left", "padding": "8px", "fontSize": "0.85rem"},
-            style_header={"backgroundColor": "#e9ecef", "fontWeight": "600"},
+            style_table={"overflowX": "auto", "overflowY": "visible",
+                          "tableLayout": "auto"},
+            style_cell={"textAlign": "center", "padding": "6px 8px", "fontSize": "0.82rem",
+                         "whiteSpace": "nowrap", "overflow": "hidden", "textOverflow": "ellipsis"},
+            style_header={"backgroundColor": "#e9ecef", "fontWeight": "600",
+                           "textAlign": "center"},
             style_cell_conditional=[
-                {"if": {"column_id": "discrimination"}, "fontWeight": "bold", "width": "160px"},
+                {"if": {"column_id": "item_id"}, "textAlign": "left",
+                 "width": "80px", "minWidth": "80px", "maxWidth": "80px"},
+                {"if": {"column_id": "stem"}, "textAlign": "left",
+                 "whiteSpace": "nowrap", "overflow": "hidden", "textOverflow": "ellipsis"},
+                {"if": {"column_id": "difficulty"}, "width": "80px",
+                 "minWidth": "80px", "maxWidth": "80px"},
+                {"if": {"column_id": "discrimination"}, "fontWeight": "bold",
+                 "width": "140px", "minWidth": "140px", "maxWidth": "140px"},
             ],
             css=[{"selector": ".Select-menu-outer", "rule": "display: block !important;"}],
             style_data_conditional=[
@@ -53,10 +63,9 @@ layout = dbc.Container([
                 {"if": {"filter_query": "{discrimination} = 'Very Low'", "column_id": "discrimination"},
                  "color": "#7a3d00", "fontWeight": "700", "backgroundColor": "#ffecd2"},
             ],
-            page_size=15,
+            page_action="none",
         ),
-        page_size_selector("discrim-page-size", default=15),
-    ], className="table-with-pager"),
+    ]),
 
     # Quick-set buttons for bulk operations
     dbc.Row([

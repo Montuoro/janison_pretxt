@@ -73,10 +73,14 @@ def fit_distribution(points_x: list[float], points_y: list[float],
         y_smooth[:taper_len] *= left_taper
         y_smooth[-taper_len:] *= right_taper
 
-    # Normalise to integrate to 1 (proper PDF)
-    area = trapezoid(y_smooth, x_smooth)
-    if area > 0:
-        y_smooth = y_smooth / area
+    # Normalise: match peak of smoothed curve to the user's drawn peak height
+    # so the fitted curve is responsive to how high the user draws
+    drawn_peak = float(ys.max())
+    smooth_peak = y_smooth.max()
+    if smooth_peak > 0 and drawn_peak > 0:
+        y_smooth = y_smooth / smooth_peak * min(drawn_peak, 0.95)
+    elif smooth_peak > 0:
+        y_smooth = y_smooth / smooth_peak * 0.5
 
     # CDF via cumulative trapezoid
     dx = x_smooth[1] - x_smooth[0]
